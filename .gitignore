@@ -1,0 +1,7 @@
+frontend/node_modules/
+frontend/.next/
+backend/.venv/
+backend/.pip-cache/
+frontend/.npm-cache/
+backend/route53.db
+__pycache__/
