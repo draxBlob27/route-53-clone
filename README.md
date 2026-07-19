@@ -1,19 +1,53 @@
 # AWS Route 53 Clone
 
-A Route 53-style DNS management console built with Next.js, FastAPI, and SQLite. It provides a mocked sign-in flow, persistent hosted-zone CRUD, and CRUD for A, AAAA, CNAME, TXT, MX, NS, PTR, SRV, and CAA records.
+A small full-stack clone of the AWS Route 53 console. The aim of this project was to reproduce the main Route 53 workflow—managing hosted zones and DNS records—without implementing real DNS resolution or AWS account integration.
 
-## Run locally
+## Live demo
 
-All dependencies are installed inside their respective project folders:
+The application is deployed here: [http://34.87.172.133:3000/](http://34.87.172.133:3000/)
+
+Authentication is mocked for the demo. Enter any valid email address on the sign-in screen to access the console.
+
+## What is included
+
+- Mocked sign-in and sign-out with a persistent browser session
+- Create, view, edit, search, and delete hosted zones
+- Create, view, edit, search, and delete DNS records within a hosted zone
+- Support for A, AAAA, CNAME, TXT, MX, NS, PTR, SRV, and CAA record types
+- SQLite-backed persistence
+- Route 53-inspired navigation, hosted-zone table, record table, forms, modals, filters, notifications, and empty states
+- Placeholder pages for Dashboard, Traffic Policies, Health Checks, Resolver, and Profiles
+
+## Tech stack
+
+- Frontend: Next.js with TypeScript
+- Backend: FastAPI
+- Database: SQLite with SQLAlchemy
+
+## Project structure
+
+```text
+.
+├── frontend/             # Next.js application and Route 53-style UI
+│   └── app/
+├── backend/              # FastAPI application
+│   ├── main.py           # API routes, models, and SQLite setup
+│   └── requirements.txt
+└── README.md
+```
+
+## Running the project locally
+
+Start the API first:
 
 ```bash
 cd backend
-python -m venv .venv
+python3 -m venv .venv
 PIP_CACHE_DIR=.pip-cache .venv/bin/pip install -r requirements.txt
 .venv/bin/uvicorn main:app --reload --port 8000
 ```
 
-In another terminal:
+Then, in a second terminal, start the frontend:
 
 ```bash
 cd frontend
@@ -21,26 +55,35 @@ npm install --cache .npm-cache
 npm run dev
 ```
 
-Open `http://localhost:3000`. The app accepts any valid email address for its local mocked session.
+Open [http://localhost:3000](http://localhost:3000) in the browser.
 
 ## Architecture
 
-- `frontend/`: single-page Next.js TypeScript console, styled to mirror Route 53 navigation, tables, filters, forms, modals, notifications, and placeholder sections.
-- `backend/main.py`: FastAPI REST API with cookie-backed mock authentication.
-- `backend/route53.db`: SQLite database, generated automatically on first server start and intentionally ignored from source control.
+The frontend is a single-page console built with Next.js. It talks to the FastAPI backend through JSON REST endpoints. The backend creates a local SQLite file (`backend/route53.db`) on first start, so hosted zones and records remain available after a server restart.
 
-## Database schema
+The sign-in flow is intentionally simple: the backend stores the supplied email address in a cookie and uses it to protect the application endpoints. AWS IAM and account-management features are outside this project’s scope.
 
-`hosted_zones` stores UUID, domain name, comment, public/private flag, and timestamp. `dns_records` stores UUID, owning zone UUID, name, type, value, TTL, and routing policy. Deleting a hosted zone cascades to its records.
+## Database design
 
-## API overview
+There are two main tables:
 
-Authentication: `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`.
+| Table | Purpose |
+| --- | --- |
+| `hosted_zones` | Stores the zone ID, domain name, optional comment, zone type, and creation time. |
+| `dns_records` | Stores each record’s ID, parent hosted-zone ID, name, type, value, TTL, and routing policy. |
 
-Hosted zones: `GET/POST /api/zones`, `GET/PUT/DELETE /api/zones/{id}`.
+A hosted zone owns its DNS records. Removing a hosted zone also removes its associated records.
 
-Records: `GET/POST /api/zones/{id}/records`, `PUT/DELETE /api/records/{id}`. List endpoints support text filters; record lists can also filter by `type`.
+## API summary
 
-## Deployment
+| Area | Endpoints |
+| --- | --- |
+| Authentication | `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` |
+| Hosted zones | `GET`, `POST /api/zones`; `GET`, `PUT`, `DELETE /api/zones/{id}` |
+| DNS records | `GET`, `POST /api/zones/{id}/records`; `PUT`, `DELETE /api/records/{id}` |
 
-Build the frontend with `npm run build`, serve it with `npm start`, and run the FastAPI service behind an HTTPS reverse proxy. Set the frontend API base URL to the deployed backend origin before publishing.
+The list endpoints support search. Record listing also supports filtering by record type.
+
+## Notes
+
+This is a UI and workflow clone, not a DNS server. Creating or changing a record in this application only updates its local SQLite database; it does not modify live DNS records.
